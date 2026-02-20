@@ -1,0 +1,22 @@
+{
+  "sample_blog1": {
+    "name": "샘플 블로그 1",
+    "nickname": "샘플러",
+    "url": "https://blog.naver.com/sample_blog1",
+    "description": "이것은 샘플 블로그입니다. 실제 블로그 ID로 교체하세요.",
+    "topics": {
+      "main": "지식·동향",
+      "sub": ["IT·컴퓨터"]
+    }
+  },
+  "sample_blog2": {
+    "name": "샘플 블로그 2",
+    "nickname": "테스터",
+    "url": "https://blog.naver.com/sample_blog2",
+    "description": "/bloggers add <블로그ID> 명령으로 블로그를 추가하세요.",
+    "topics": {
+      "main": "생활·노하우·쇼핑",
+      "sub": ["일상·생각"]
+    }
+  }
+}
