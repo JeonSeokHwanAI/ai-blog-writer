@@ -9,9 +9,16 @@ ENV/
 
 # Output files
 output/
-docs/blog/
-docs/reviews/
-docs/clips/
+docs/blog/*
+docs/reviews/*
+docs/clips/*
+docs/reports/*
+
+# Keep folder structure
+!docs/blog/.gitkeep
+!docs/reviews/.gitkeep
+!docs/clips/.gitkeep
+!docs/reports/.gitkeep
 
 # Config state files
 config/.last_search.json
