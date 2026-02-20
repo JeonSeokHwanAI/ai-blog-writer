@@ -8,13 +8,14 @@ venv/
 ENV/
 
 # Output files
-output/
+output/*
 docs/blog/*
 docs/reviews/*
 docs/clips/*
 docs/reports/*
 
 # Keep folder structure
+!output/.gitkeep
 !docs/blog/.gitkeep
 !docs/reviews/.gitkeep
 !docs/clips/.gitkeep
