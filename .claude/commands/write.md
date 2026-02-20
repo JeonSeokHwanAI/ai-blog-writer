@@ -154,6 +154,8 @@ created_at: "{YYYY-MM-DD HH:MM}"
 status: "draft"  # draft → complete
 keyword: "{키워드}"
 category: ""
+persona: "{활성 페르소나 이름}"
+persona_file: "{config/personas/이름.json 경로}"
 ---
 
 # {제목}
