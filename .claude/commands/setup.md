@@ -48,6 +48,7 @@ git init
 git remote add origin https://github.com/JeonSeokHwanAI/ai-blog-writer.git
 git fetch origin
 git reset origin/main
+git checkout -- .
 ```
 
 > 이 과정에서 기존 docs/, output/, config/ 상태 파일은 .gitignore에 의해 **그대로 보존**됩니다.

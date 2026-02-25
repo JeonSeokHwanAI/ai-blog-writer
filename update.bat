@@ -39,6 +39,7 @@ if errorlevel 1 (
     git remote add origin https://github.com/JeonSeokHwanAI/ai-blog-writer.git
     git fetch origin
     git reset origin/main
+    git checkout -- .
     echo.
     echo [OK] Git connected to ai-blog-writer
 ) else (
