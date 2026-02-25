@@ -125,30 +125,14 @@ Claude Code에서 슬래시 명령어로 실행합니다.
 
 ## 업데이트 방법
 
-ZIP으로 다운받아 사용 중이라면, 아래 과정으로 **기존 데이터를 유지하면서** 최신 버전을 받을 수 있습니다.
+Claude Code에서 아래 명령어를 실행하면 **기존 데이터를 유지하면서** 최신 버전으로 업데이트됩니다.
 
-### 최초 1회: git 연결
-
-프로젝트 폴더에서 아래 명령어를 순서대로 실행합니다.
-
-```bash
-cd "프로젝트_폴더_경로"
-git init
-git remote add origin https://github.com/JeonSeokHwanAI/ai-blog-writer.git
-git fetch origin
-git reset origin/main
+```
+/setup update
 ```
 
-> 기존 docs/, output/, config/ 상태 파일은 .gitignore에 의해 **그대로 보존**됩니다.
-
-### 이후 업데이트
-
-```bash
-cd "프로젝트_폴더_경로"
-git pull
-```
-
-> 새로운 패키지가 추가된 경우 `pip install -r requirements.txt`도 실행하세요.
+> git 연결, 코드 업데이트, 패키지 설치를 자동으로 처리합니다.
+> 기존 docs/, output/ 등 개인 데이터는 그대로 보존됩니다.
 
 ---
 
