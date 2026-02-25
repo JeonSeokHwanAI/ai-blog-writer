@@ -2,12 +2,13 @@
 
 > AI는 펜이고, 당신이 작가입니다.
 
-네이버 블로그 스크래핑, 분석, 글쓰기 도구입니다.
+네이버 블로그/유튜브 스크래핑, 분석, 글쓰기 도구입니다.
 
 ## 주요 기능
 
 ### 수집 및 분석
 - **블로그 스크래핑** - 네이버 블로그 포스트 자동 수집
+- **YouTube 스크래핑** - YouTube 채널 영상 + 자막 수집
 - **전체분석** - 12개 항목 종합 분석
 - **특정글분석** - 8개 섹션 심층 분석
 - **키워드 분석** - 연관 키워드, 검색 의도 분석
@@ -45,6 +46,7 @@ Claude Code에서 슬래시 명령어로 실행합니다.
 
 ```
 /search <블로그ID> <수량>
+/search yt:@핸들명 <수량>      # YouTube 채널
 ```
 
 ### 블로그 분석
@@ -85,7 +87,7 @@ Claude Code에서 슬래시 명령어로 실행합니다.
 │   ├── blogs.json          # 블로그 목록
 │   ├── personas/           # 페르소나 JSON
 │   └── keyword_config.json # 키워드 설정
-├── scraper/                # 스크래핑 모듈
+├── scraper/                # 스크래핑 모듈 (블로그 + YouTube)
 ├── utils/                  # 유틸리티
 ├── output/                 # 스크래핑 결과
 └── docs/
@@ -118,6 +120,35 @@ Claude Code에서 슬래시 명령어로 실행합니다.
 10. 경쟁 환경
 11. AI 대응력
 12. 독자 참여도
+
+---
+
+## 업데이트 방법
+
+ZIP으로 다운받아 사용 중이라면, 아래 과정으로 **기존 데이터를 유지하면서** 최신 버전을 받을 수 있습니다.
+
+### 최초 1회: git 연결
+
+프로젝트 폴더에서 아래 명령어를 순서대로 실행합니다.
+
+```bash
+cd "프로젝트_폴더_경로"
+git init
+git remote add origin https://github.com/JeonSeokHwanAI/ai-blog-writer.git
+git fetch origin
+git reset origin/main
+```
+
+> 기존 docs/, output/, config/ 상태 파일은 .gitignore에 의해 **그대로 보존**됩니다.
+
+### 이후 업데이트
+
+```bash
+cd "프로젝트_폴더_경로"
+git pull
+```
+
+> 새로운 패키지가 추가된 경우 `pip install -r requirements.txt`도 실행하세요.
 
 ---
 
