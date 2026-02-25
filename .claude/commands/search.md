@@ -1,8 +1,77 @@
-# 네이버 블로그 스크래퍼 실행
+# 블로그/유튜브 스크래퍼 실행
 
 인자: $ARGUMENTS
 
-## 인자 파싱
+## 플랫폼 분기
+
+인자가 `yt:` 또는 `유튜브:` 로 시작하면 **YouTube 모드**, 그 외는 **네이버 블로그 모드**.
+
+---
+
+## YouTube 모드 (yt: 접두사)
+
+### 인자 파싱
+
+- `yt:<채널>` → 채널의 최신 **1개** 영상 수집
+- `yt:<채널> <count>` → 지정한 수량만큼 수집
+- `<채널>`은 @handle, 채널URL, 채널명, 채널ID 모두 가능
+
+**예시:**
+- `/search yt:@techmong` → 테크몽 채널 최신 1개
+- `/search yt:@techmong 10` → 최신 10개
+- `/search yt:테크몽 5` → 채널명 검색 → 5개
+- `/search yt:UCxxxx 10` → 채널 ID 직접 지정
+
+### 실행 방법
+
+1. 인자에서 `yt:` 접두사 제거하여 채널 입력값과 수량 분리
+2. `config/blogs.json`에서 `yt_`로 시작하는 항목 중 매칭 시도 (nickname, name 등)
+3. 매칭 실패 시 YouTube API로 직접 검색
+4. 다음 Python 코드를 실행:
+
+```python
+import sys, os, json
+sys.path.insert(0, "프로젝트_루트_경로")
+from scraper import YouTubeScraper
+from utils import save_youtube_to_files
+
+# 스크래퍼 실행
+scraper = YouTubeScraper(channel_input="{채널입력값}")
+videos = scraper.scrape_all(limit={count}, include_content=True)
+
+# 저장
+prefix = scraper.get_display_name()
+output_dir = os.path.join("프로젝트_루트_경로", "output", prefix)
+channel_info = scraper.channel_info or {}
+result = save_youtube_to_files(videos, channel_info, output_dir, prefix)
+```
+
+5. 결과를 `output/yt_{handle}/` 폴더에 저장
+6. `.last_search.json` 업데이트 (blog_id를 `yt_{handle}`로)
+7. **검색 기록 저장**: `config/.last_searches.json`에 ID와 시간 기록
+
+### 결과 출력
+
+```
+## yt_{handle} 스크래핑 완료 (N개)
+
+채널: {채널명} | 구독자: {구독자수} | 총 영상: {영상수}개
+
+| # | 제목 | 발행일 | 조회수 | 좋아요 | 시간 | 링크 |
+|---|------|--------|--------|--------|------|------|
+| 00 | 영상제목 | 2026-02-20 | 52만 | 1.2만 | 12:30 | [링크](https://youtube.com/watch?v=...) |
+```
+
+### 결과 파일
+
+- `{prefix}_summary_*.json` - 채널 + 영상 요약
+- `{prefix}_posts_*.json` - 전체 영상 데이터 (자막 포함)
+
+---
+
+## 네이버 블로그 모드 (기본)
+
+### 인자 파싱
 
 - `<blog_id>` → 블로그 ID만 입력 시 **1개** 포스트 수집
 - `<blog_id> <count>` → 지정한 수량만큼 수집
@@ -16,7 +85,7 @@
 - `/search 혜이니 3` → 980207(N잡하는 혜이니) 3개 포스트
 - `/search 리리 --댓글` → 스크래핑 + 댓글만 바로 출력
 
-## 실행 방법
+### 실행 방법
 
 1. 인자를 파싱하여 블로그 ID와 수량 분리
 2. **블로그 ID 자동 매칭:**
@@ -30,14 +99,14 @@
 4. 다음 bash 명령 실행:
 
 ```bash
-cd "e:/Project/vibecode/Naver Scraping" && (echo "https://blog.naver.com/{blog_id}" && echo {count}) | python -X utf8 main.py
+cd "프로젝트_루트_경로" && (echo "https://blog.naver.com/{blog_id}" && echo {count}) | python -X utf8 main.py
 ```
 
 4. 스크래핑 완료 후 `output/{blog_id}/` 폴더의 결과 확인
 5. 오늘 발행된 글이 있으면 강조하여 표시
 6. **검색 기록 저장**: `config/.last_searches.json`에 검색한 블로그 ID와 시간 기록
 
-## 검색 기록 저장
+### 검색 기록 저장
 
 스크래핑 완료 후 `config/.last_searches.json` 파일을 업데이트:
 
@@ -45,7 +114,7 @@ cd "e:/Project/vibecode/Naver Scraping" && (echo "https://blog.naver.com/{blog_i
 {
   "searches": [
     {"id": "zeroenter", "timestamp": "2026-02-12T08:21:00"},
-    {"id": "cpyoganara1004", "timestamp": "2026-02-12T08:31:00"}
+    {"id": "yt_techmong", "timestamp": "2026-02-12T09:00:00"}
   ]
 }
 ```
@@ -54,7 +123,7 @@ cd "e:/Project/vibecode/Naver Scraping" && (echo "https://blog.naver.com/{blog_i
 - 같은 ID가 있으면 시간만 업데이트 (중복 제거)
 - 오래된 것은 자동 삭제
 
-## 결과 출력
+### 결과 출력 (네이버 블로그)
 
 스크래핑 완료 후:
 - 포스트 목록을 마크다운 표로 표시
@@ -72,12 +141,12 @@ cd "e:/Project/vibecode/Naver Scraping" && (echo "https://blog.naver.com/{blog_i
 | 01 | 제목2 | 2026-02-11 | [링크](https://blog.naver.com/...) |
 ```
 
-## 결과 파일
+### 결과 파일
 
 - `{blog_id}_summary_*.json` - 요약 정보
 - `{blog_id}_posts_*.json` - 전체 포스트 내용
 
-## --댓글 옵션
+## --댓글 옵션 (네이버 블로그 전용)
 
 인자에 `--댓글` 또는 `댓글`이 포함되면 스크래핑 완료 후 **추천 댓글만** 바로 출력합니다.
 

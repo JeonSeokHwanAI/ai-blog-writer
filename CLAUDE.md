@@ -2,7 +2,7 @@
 
 > AI는 펜이고, 당신이 작가입니다.
 
-AI 블로그 작가가 만든 네이버 블로그 스크래핑, 분석, 글쓰기 플랫폼입니다.
+AI 블로그 작가가 만든 네이버 블로그/유튜브 스크래핑, 분석, 글쓰기 플랫폼입니다.
 블로그 분석부터 페르소나 기반 글쓰기까지, AI를 파트너로 활용하여 나만의 블로그 작가가 되는 도구입니다.
 
 ## 프로젝트 구조
@@ -18,6 +18,7 @@ AI 블로그 작가가 만든 네이버 블로그 스크래핑, 분석, 글쓰�
 │   └── keyword_config.json      # 키워드 API 설정
 ├── scraper/                     # 스크래핑 모듈
 │   ├── blog_scraper.py          # 블로그 포스트 수집
+│   ├── youtube_scraper.py       # YouTube 채널 수집
 │   └── monthly_blog.py          # 이달의 블로그 수집
 ├── utils/                       # 유틸리티 함수
 ├── output/                      # 스크래핑 결과
@@ -36,7 +37,7 @@ AI 블로그 작가가 만든 네이버 블로그 스크래핑, 분석, 글쓰�
 
 | 명령어 | 설명 | 예시 |
 |--------|------|------|
-| `/search` | 블로그 스크래핑 | `/search zeroenter 5` |
+| `/search` | 블로그/유튜브 스크래핑 | `/search zeroenter 5`, `/search yt:@techmong 10` |
 | `/review` | 블로그 분석 리뷰 | `/review 비움 00`, `/review 비움 0` (전체분석) |
 | `/keyword` | 키워드 분석 | `/keyword AI 바이브 코딩` |
 | `/monthly` | 이달의 블로그 수집 | `/monthly add` |
@@ -107,13 +108,23 @@ playwright install chromium
 ## 상세 사용법
 
 ### /search {blog_id} {count}
-네이버 블로그 스크래퍼 실행. 별명/블로그명 자동 매칭 지원.
+블로그/유튜브 스크래퍼 실행. 별명/블로그명 자동 매칭 지원.
 
+**네이버 블로그:**
 ```
 /search 980207        # 최신 1개 포스트
 /search zeroenter 5   # 5개 포스트
 /search 리리 3        # 별명 매칭 → ari_school
 ```
+
+**YouTube** (`yt:` 접두사):
+```
+/search yt:@techmong      # 테크몽 채널 최신 1개
+/search yt:@techmong 10   # 최신 10개
+/search yt:테크몽 5       # 채널명 검색 → 5개
+```
+
+> YouTube 기능은 YouTube Data API 키가 필요합니다. `config/keyword_config.json`에 `YOUTUBE_API_KEY`를 설정하세요.
 
 ### /review {별명/ID} {포스트번호|0}
 수집된 데이터로 블로그 분석. 직전 `/search` 결과를 자동 연결.
@@ -170,7 +181,8 @@ WebSearch로 키워드 분석: 연관 키워드, 검색 의도, 콘텐츠 추천
 
 | 파일 유형 | 저장 위치 |
 |-----------|-----------|
-| 스크래핑 결과 | `output/{blog_id}/` |
+| 스크래핑 결과 (블로그) | `output/{blog_id}/` |
+| 스크래핑 결과 (유튜브) | `output/yt_{handle}/` |
 | 블로그 글 (초안) | `docs/blog/` |
 | 블로그 리뷰 | `docs/reviews/` |
 | 클리핑 글 | `docs/clips/` |
