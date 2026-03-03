@@ -25,7 +25,7 @@
 ### 실행 방법
 
 1. 인자에서 `yt:` 접두사 제거하여 채널 입력값과 수량 분리
-2. `config/blogs.json`에서 `yt_`로 시작하는 항목 중 매칭 시도 (nickname, name 등)
+2. `config/youtubers.json`에서 매칭 시도 (nickname, name, handle 등)
 3. 매칭 실패 시 YouTube API로 직접 검색
 4. 다음 Python 코드를 실행:
 

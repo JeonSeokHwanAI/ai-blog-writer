@@ -18,7 +18,7 @@ python utils/bloggers_cli.py <인자>
 | `<키워드>` | O | `python utils/bloggers_cli.py 비움` |
 | `#<주제>` | O | `python utils/bloggers_cli.py #IT` |
 | `@<ID>` | O | `python utils/bloggers_cli.py @hhey0510` |
-| `add`, `del`, `update`, `history` | X (AI 처리) | - |
+| `add`, `del`, `update`, `history`, `categories` | X (AI 처리) | - |
 | `?<별명>` | X (WebSearch 필요) | - |
 
 **실행 방법:**
@@ -50,6 +50,10 @@ python utils/bloggers_cli.py <인자>
 - `del <ID>` → 블로그 삭제
 - `update <ID>` → 분석 결과 기반 블로그 정보 업데이트
 - `history <ID>` → 블로그 변경 이력 조회
+- `categories list` → 카테고리 캐시 현황 조회
+- `categories <ID>` → 블로그 카테고리 수집/조회
+- `categories <ID> analyze` → 카테고리 구조 개편 추천
+- `categories <ID> classify <카테고리번호>` → 포스트 재분류 추천
 - `#<주제>` → 주제로 필터링
 - `@<ID>` → ID로 검색 (등록된 블로그)
 - `?<별명>` → 네이버에서 별명으로 블로거 검색
@@ -84,6 +88,10 @@ python utils/bloggers_cli.py <인자>
 | 11 | `/bloggers del <ID>` | 블로그 삭제 |
 | 12 | `/bloggers update <ID>` | 분석 기반 정보 업데이트 |
 | 13 | `/bloggers history <ID>` | 변경 이력 조회 |
+| 14 | `/bloggers categories <ID>` | 카테고리 수집/조회 |
+| 15 | `/bloggers categories <ID> analyze` | 카테고리 개편 추천 |
+| 16 | `/bloggers categories list` | 캐시 현황 조회 |
+| 17 | `/bloggers categories <ID> classify <번호>` | 포스트 재분류 추천 |
 ```
 
 ### 2. 블로그 열기 (숫자)
@@ -283,6 +291,189 @@ python utils/bloggers_cli.py <인자>
 ["zeroenter", "ari_school", "980207"]
 ```
 
+### 10. 카테고리 캐시 현황 (`categories list`)
+
+등록된 블로거들의 카테고리 캐시 현황을 표시합니다.
+
+**실행 방법:**
+
+1. `config/blogs.json`에서 전체 블로거 목록 로드
+2. 각 블로거별 `output/{ID}/{ID}_categories.json` 존재 여부 확인
+3. 캐시가 있으면 `fetched_at`, 카테고리 수, 포스트 수 표시
+
+**출력 형식:**
+```
+## 카테고리 캐시 현황
+
+| # | ID | 블로그명 | 카테고리 | 포스트 | 수집일 |
+|---|-----|----------|----------|--------|--------|
+| 1 | zeroenter | 지식의 대장장이 | 23 | 304 | 2026-02-26 |
+| 2 | ari_school | 리리스쿨 | 12 | 180 | 2026-02-20 |
+| 3 | 980207 | 비움 | - | - | 미수집 |
+
+수집됨: 2/3 | 미수집: 1/3
+```
+
+**예시:**
+- `/bloggers categories list` - 전체 캐시 현황
+
+### 10-0. 카테고리 수집/조회 (`categories <ID>`)
+블로그 카테고리 구조를 수집하고 캐시합니다.
+
+**실행 방법:**
+
+1. 캐시 확인: `output/{ID}/{ID}_categories.json` 존재 여부
+   - 있으면 → 캐시 데이터 로드 후 표시, "갱신하시겠습니까?" 질문
+   - 없으면 → 바로 수집 실행
+
+2. 수집 실행 (Python 스크립트):
+   ```python
+   from scraper import NaverBlogScraper
+   scraper = NaverBlogScraper(blog_id)
+   categories = scraper.get_categories()
+   ```
+
+3. 결과를 `output/{ID}/{ID}_categories.json`에 저장:
+   ```json
+   {
+     "blog_id": "<ID>",
+     "fetched_at": "2026-02-26",
+     "total_posts": 304,
+     "categories": [
+       {"no": "58", "name": "AI 바이브코딩", "count": 53, "parent_no": "0"},
+       {"no": "54", "name": "TechTip", "count": 55, "parent_no": "50"}
+     ]
+   }
+   ```
+
+4. 트리 형태로 출력
+
+**출력 형식:**
+```
+## 블로그 카테고리: {blog_id}
+
+수집일: {fetched_at} | 총 {total_posts}개 포스트
+
+### 카테고리 트리
+
+📁 전체 ({total_posts})
+├── 📂 [50] 부모카테고리 ({count})
+│   ├── 📄 [54] 자식카테고리1 ({count})
+│   └── 📄 [51] 자식카테고리2 ({count})
+├── 📄 [55] 독립카테고리 ({count})
+└── ...
+
+---
+💡 `/bloggers categories {ID}` - 카테고리 갱신
+💡 `/bloggers categories {ID} classify <번호>` - 포스트 재분류
+💡 `/write` 시 카테고리 추천에 활용됩니다
+```
+
+**트리 구성 규칙:**
+- `parent_no`가 `"0"`인 카테고리 → 루트 레벨
+- `parent_no`가 다른 카테고리의 `no`와 일치 → 해당 카테고리의 하위
+- 부모 카테고리의 count = 자기 포스트 수 + 하위 카테고리 포스트 합산
+
+**예시:**
+- `/bloggers categories zeroenter` - zeroenter 카테고리 수집
+- `/bloggers categories ari_school` - ari_school 카테고리 수집
+
+### 10-1. 카테고리 구조 개편 추천 (`categories <ID> analyze`)
+
+수집된 카테고리 데이터를 분석하여 구조 개편을 제안합니다.
+
+**실행 방법:**
+
+1. `output/{ID}/{ID}_categories.json` 캐시 로드 (없으면 먼저 수집)
+2. 아래 분석 규칙으로 문제점 진단
+3. 개선안 제시 (BEFORE → AFTER 비교)
+
+**분석 규칙:**
+
+| 규칙 | 조건 | 제안 |
+|------|------|------|
+| 소규모 카테고리 | 포스트 3개 이하 | 유사 카테고리에 통합 |
+| 대규모 카테고리 | 포스트 50개 이상 | 하위 카테고리로 분리 |
+| 유사 카테고리 | 이름이 비슷하거나 주제 겹침 | 하나로 통합 |
+| 고아 부모 | 하위 1개뿐인 부모 카테고리 | 계층 단순화 |
+| 깊은 중첩 | 3단계 이상 중첩 | 2단계로 평탄화 |
+
+**출력 형식:**
+```
+## 카테고리 구조 분석: {blog_id}
+
+### 진단 결과
+
+| # | 유형 | 대상 | 번호 | 포스트 수 | 제안 |
+|---|------|------|------|-----------|------|
+| 1 | 소규모 | 직장생활 | [53] | 4 | → "1퍼센트 IT"에 통합 |
+| 2 | 대규모 | AI로 돈벌기 | [58] | 100 | → 하위 카테고리 분리 |
+| 3 | 유사 | PC지식 + TechTip | [51]+[54] | 18+55 | → "IT 팁" 통합 고려 |
+
+### 개편안
+
+**현재** ({N}개 카테고리)
+📁 전체
+├── 📂 [50] 기존 구조...
+
+**제안** ({M}개 카테고리)
+📁 전체
+├── 📂 [50] 개편 구조...
+
+---
+💡 이 제안은 참고용입니다. 네이버 블로그에서 직접 수정하세요.
+💡 `/bloggers categories {ID} classify <번호>` - 특정 카테고리 포스트 재분류
+```
+
+**예시:**
+- `/bloggers categories zeroenter analyze` - zeroenter 카테고리 개편 추천
+
+### 10-2. 포스트 재분류 (`categories <ID> classify <카테고리번호>`)
+
+특정 카테고리의 포스트들을 분석하여 어느 카테고리로 이동하면 좋을지 추천합니다.
+
+**실행 방법:**
+
+1. `output/{ID}/{ID}_categories.json` 캐시 로드 (없으면 먼저 수집)
+2. 해당 카테고리의 포스트 목록 수집:
+   ```python
+   from scraper import NaverBlogScraper
+   scraper = NaverBlogScraper(blog_id)
+   posts = scraper.get_posts_by_category(category_no)
+   ```
+3. 전체 카테고리 목록과 각 포스트 제목을 비교하여 재분류 추천
+4. 결과를 표로 출력
+
+**분류 기준:**
+- 포스트 제목의 키워드와 각 카테고리 이름/주제의 관련성
+- 현재 카테고리에 유지할 글 vs 다른 카테고리로 이동할 글 구분
+- 이동 추천 시 대상 카테고리와 이유 명시
+
+**출력 형식:**
+```
+## 포스트 재분류: {blog_id} > {카테고리명} ({count}개)
+
+### 이동 추천
+
+| # | 제목 | 현재 | 추천 카테고리 | 이유 |
+|---|------|------|---------------|------|
+| 1 | 포스트 제목... | 카테고리A | 카테고리B | 주제가 B에 더 적합 |
+| 2 | ... | ... | ... | ... |
+
+### 현재 카테고리 유지 ({N}개)
+
+| # | 제목 |
+|---|------|
+| 1 | 유지할 포스트... |
+
+---
+💡 이 제안은 참고용입니다. 네이버 블로그에서 직접 이동하세요.
+```
+
+**예시:**
+- `/bloggers categories zeroenter classify 54` - TechTip 포스트 재분류
+- `/bloggers categories zeroenter classify 58` - AI 바이브코딩 포스트 재분류
+
 ### 9. 페이지/범위 보기 (`p<N>`, `<N>-<M>`)
 - `p2` → 21~40번 표시 (페이지당 20개)
 - `1-20` → 1~20번 표시
@@ -309,6 +500,7 @@ python utils/bloggers_cli.py <인자>
 - `config/naver_topics.json`: 네이버 주제 카테고리
 - `config/.favorites.json`: 즐겨찾기 목록
 - `config/.last_searches.json`: 최근 검색 기록
+- `output/{blog_id}/{blog_id}_categories.json`: 블로그 카테고리 캐시
 
 ## 최근 검색 기록
 
