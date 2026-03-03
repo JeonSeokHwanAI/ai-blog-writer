@@ -8,7 +8,10 @@ import requests
 import xml.etree.ElementTree as ET
 import time
 import re
+import json
+from collections import Counter
 from typing import Optional
+from urllib.parse import unquote
 from .parser import PostParser
 
 
@@ -105,6 +108,154 @@ class NaverBlogScraper:
 
             if limit and len(posts) >= limit:
                 break
+
+        return posts
+
+    def get_categories(self) -> list:
+        """
+        블로그 카테고리 목록 수집 (PostTitleListAsync API 사용)
+
+        Returns:
+            카테고리 리스트: [{"no": "58", "name": "AI 바이브코딩", "count": 53, "parent_no": "0"}, ...]
+        """
+        seen = set()
+        cat_counter = Counter()
+        cat_parents = {}
+
+        # 1) 포스트 목록에서 카테고리 번호 수집 (최대 10페이지)
+        for page in range(1, 11):
+            url = (
+                f"https://blog.naver.com/PostTitleListAsync.naver"
+                f"?blogId={self.blog_id}&currentPage={page}&countPerPage=30"
+            )
+            try:
+                resp = self.session.get(url, headers=self.DESKTOP_HEADERS, timeout=10)
+                text = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', resp.text.strip())
+                data = json.loads(text)
+                posts = data.get("postList", [])
+                if not posts:
+                    break
+                for p in posts:
+                    log_no = p.get("logNo", "")
+                    if log_no in seen:
+                        continue
+                    seen.add(log_no)
+                    cat_no = str(p.get("categoryNo", "0"))
+                    parent_no = str(p.get("parentCategoryNo", "0"))
+                    cat_counter[cat_no] += 1
+                    if cat_no not in cat_parents:
+                        cat_parents[cat_no] = parent_no
+            except (requests.RequestException, json.JSONDecodeError):
+                break
+            time.sleep(self.delay)
+
+        # 2) 각 카테고리의 이름 수집
+        cat_names = {}
+        for cat_no in cat_counter:
+            url = (
+                f"https://blog.naver.com/PostList.naver"
+                f"?blogId={self.blog_id}&categoryNo={cat_no}&from=postList"
+            )
+            try:
+                resp = self.session.get(url, headers=self.DESKTOP_HEADERS, timeout=10)
+                resp.encoding = "utf-8"
+                title_match = re.search(r"<title>([^<]+)</title>", resp.text)
+                if title_match:
+                    raw = title_match.group(1).strip()
+                    # 형식: "카테고리명 : 블로그명 : 네이버 블로그"
+                    parts = re.split(r"\s*[,:]\s*", raw)
+                    cat_names[cat_no] = parts[0] if parts else raw
+                else:
+                    cat_names[cat_no] = f"카테고리 {cat_no}"
+            except requests.RequestException:
+                cat_names[cat_no] = f"카테고리 {cat_no}"
+            time.sleep(self.delay)
+
+        # 3) 결과 조합
+        categories = []
+        collected_nos = set()
+        for cat_no, count in cat_counter.most_common():
+            categories.append({
+                "no": cat_no,
+                "name": cat_names.get(cat_no, f"카테고리 {cat_no}"),
+                "count": count,
+                "parent_no": cat_parents.get(cat_no, "0"),
+            })
+            collected_nos.add(cat_no)
+
+        # 4) 누락된 부모 카테고리 보완 (자체 포스트가 없는 부모)
+        missing_parents = set()
+        for cat_no, parent_no in cat_parents.items():
+            if parent_no != cat_no and parent_no != "0" and parent_no not in collected_nos:
+                missing_parents.add(parent_no)
+
+        for parent_no in missing_parents:
+            url = (
+                f"https://blog.naver.com/PostList.naver"
+                f"?blogId={self.blog_id}&categoryNo={parent_no}&from=postList"
+            )
+            try:
+                resp = self.session.get(url, headers=self.DESKTOP_HEADERS, timeout=10)
+                resp.encoding = "utf-8"
+                title_match = re.search(r"<title>([^<]+)</title>", resp.text)
+                if title_match:
+                    raw = title_match.group(1).strip()
+                    parts = re.split(r"\s*[,:]\s*", raw)
+                    name = parts[0] if parts else raw
+                else:
+                    name = f"카테고리 {parent_no}"
+            except requests.RequestException:
+                name = f"카테고리 {parent_no}"
+            time.sleep(self.delay)
+            categories.append({
+                "no": parent_no,
+                "name": name,
+                "count": 0,
+                "parent_no": parent_no,
+            })
+
+        return categories
+
+    def get_posts_by_category(self, category_no: str) -> list:
+        """
+        특정 카테고리의 포스트 목록 수집
+
+        Args:
+            category_no: 카테고리 번호
+
+        Returns:
+            포스트 리스트: [{"logNo": "...", "title": "...", "addDate": "..."}, ...]
+        """
+        seen = set()
+        posts = []
+
+        for page in range(1, 20):
+            url = (
+                f"https://blog.naver.com/PostTitleListAsync.naver"
+                f"?blogId={self.blog_id}&categoryNo={category_no}"
+                f"&currentPage={page}&countPerPage=30"
+            )
+            try:
+                resp = self.session.get(url, headers=self.DESKTOP_HEADERS, timeout=10)
+                text = re.sub(r'(?<!\\)\\(?!["\\/bfnrtu])', r'\\\\', resp.text.strip())
+                data = json.loads(text)
+                post_list = data.get("postList", [])
+                if not post_list:
+                    break
+                for p in post_list:
+                    log_no = p.get("logNo", "")
+                    if log_no in seen:
+                        continue
+                    seen.add(log_no)
+                    title = unquote(p.get("title", "").replace("+", " "))
+                    posts.append({
+                        "logNo": log_no,
+                        "title": title,
+                        "addDate": p.get("addDate", ""),
+                    })
+            except (requests.RequestException, json.JSONDecodeError):
+                break
+            time.sleep(self.delay)
 
         return posts
 
